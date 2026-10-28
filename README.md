@@ -20,6 +20,16 @@ Seeded accounts (password `password`, local only): `admin@example.com` (admin), 
 
 For container setup, `php artisan service:bootstrap <email> [--token-file=path] [--seed]` makes sure a service user exists and issues it a token, writing the token to the file only if the file is missing or empty. `--seed` adds the demo accounts.
 
+Optional boot-time env vars, for hosts without a shell (both idempotent, applied after migrations):
+
+| Variable | Effect |
+|---|---|
+| `ADMIN_EMAIL` + `ADMIN_PASSWORD` | Create that admin if no user has the email |
+| `INVENTORY_SERVICE_TOKEN` | Accept this value (32+ chars) as the service user's token; changing it revokes the previous one. Service user email from `INVENTORY_SERVICE_EMAIL` (default `inventory-service@example.com`) |
+| `PORT` | Port Apache listens on (default 80) |
+
+`APP_KEY` may also be a bare base64 32-byte value (as Render's `generateValue` produces); the `base64:` prefix is added. Proxy headers are trusted, so the app sees HTTPS behind a TLS-terminating host. Render deployment: see `render.yaml` in `office-inventory-api`.
+
 ## Roles
 
 | Role | Can |
@@ -56,7 +66,7 @@ The inventory API caches token lookups for `AUTH_CACHE_TTL` seconds, so a token 
 ## CLI
 
 ```bash
-php artisan user:create boss@example.com --role=admin [--name="Boss"] [--password=...]   # generates a password if omitted
+php artisan user:create boss@example.com --role=admin [--name="Boss"] [--password=...] [--if-missing]   # generates a password if omitted
 php artisan user:token boss@example.com [--name=cli] [--expires=<minutes>]               # prints a new token once
 ```
 

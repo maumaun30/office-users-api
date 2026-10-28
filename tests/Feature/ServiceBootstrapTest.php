@@ -69,4 +69,46 @@ class ServiceBootstrapTest extends TestCase
         $this->assertTrue(User::firstWhere('email', 'admin@example.com')->isAdmin());
         $this->assertSame(Role::Service, User::firstWhere('email', 'inventory-service@example.com')->role);
     }
+
+    public function test_accepts_token_from_env_and_rotates_it(): void
+    {
+        $old = str_repeat('a', 44);
+        putenv("SVC_TOKEN={$old}");
+        $this->artisan('service:bootstrap', ['email' => 'svc@example.com', '--token-env' => 'SVC_TOKEN'])
+            ->assertSuccessful();
+        $this->artisan('service:bootstrap', ['email' => 'svc@example.com', '--token-env' => 'SVC_TOKEN'])
+            ->assertSuccessful();
+        $this->assertSame(1, PersonalAccessToken::count());
+        $this->withToken($old)->getJson('/api/users')->assertOk();
+
+        $new = str_repeat('b', 44);
+        putenv("SVC_TOKEN={$new}");
+        $this->artisan('service:bootstrap', ['email' => 'svc@example.com', '--token-env' => 'SVC_TOKEN'])
+            ->assertSuccessful();
+        $this->assertSame(1, PersonalAccessToken::count());
+        $this->assertNull(PersonalAccessToken::findToken($old));
+        $this->assertNotNull(PersonalAccessToken::findToken($new));
+
+        putenv('SVC_TOKEN');
+    }
+
+    public function test_rejects_short_env_token(): void
+    {
+        putenv('SVC_TOKEN=short');
+        $this->artisan('service:bootstrap', ['email' => 'svc@example.com', '--token-env' => 'SVC_TOKEN'])
+            ->assertFailed();
+        $this->assertSame(0, PersonalAccessToken::count());
+        putenv('SVC_TOKEN');
+    }
+
+    public function test_user_create_if_missing_is_idempotent(): void
+    {
+        $args = ['email' => 'boss@example.com', '--role' => 'admin', '--password' => 'secret-pass-123', '--if-missing' => true];
+        $this->artisan('user:create', $args)->assertSuccessful();
+        $this->artisan('user:create', $args)->assertSuccessful();
+        $this->assertSame(1, User::where('email', 'boss@example.com')->count());
+
+        unset($args['--if-missing']);
+        $this->artisan('user:create', $args)->assertFailed();
+    }
 }
