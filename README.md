@@ -82,3 +82,5 @@ Clients log in here, then call the inventory API with the same token.
 ```bash
 php artisan test
 ```
+
+Code style (also run in CI): `vendor/bin/pint --test`, or `vendor/bin/pint` to fix.
