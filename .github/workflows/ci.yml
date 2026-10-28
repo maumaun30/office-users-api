@@ -20,6 +20,7 @@ jobs:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
       - run: composer install --prefer-dist --no-interaction --no-progress
+      - run: vendor/bin/pint --test
       - run: cp .env.example .env && php artisan key:generate
       - run: php artisan test
 
