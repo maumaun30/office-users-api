@@ -27,6 +27,8 @@ Optional boot-time env vars, for hosts without a shell (both idempotent, applied
 | `ADMIN_EMAIL` + `ADMIN_PASSWORD` | Create that admin if no user has the email |
 | `INVENTORY_SERVICE_TOKEN` | Accept this value (32+ chars) as the service user's token; changing it revokes the previous one. Service user email from `INVENTORY_SERVICE_EMAIL` (default `inventory-service@example.com`) |
 | `PORT` | Port Apache listens on (default 80) |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed on `api/*` (default `*`) |
+| `CORS_ALLOWED_ORIGIN_PATTERN` | Optional regex without delimiters, e.g. `https://office-inventory-ui-.*\.vercel\.app` |
 
 `APP_KEY` may also be a bare base64 32-byte value (as Render's `generateValue` produces); the `base64:` prefix is added. Proxy headers are trusted, so the app sees HTTPS behind a TLS-terminating host. Render deployment: see `render.yaml` in `office-inventory-api`.
 
