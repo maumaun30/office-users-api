@@ -12,7 +12,13 @@ php artisan migrate --seed
 php artisan serve                       # http://127.0.0.1:8000
 ```
 
-Seeded accounts (password `password`, local only): `admin@example.com` (admin), `staff@example.com` (staff), `inventory-service@example.com` (service), plus 5 random staff.
+Seeded accounts (password `password`, local only): `admin@example.com` (admin), `staff@example.com` (staff), `inventory-service@example.com` (service).
+
+### Docker
+
+`Dockerfile` builds a production image (PHP 8.3 + Apache, no dev dependencies). It needs `APP_KEY` and `DB_*` env vars, runs `migrate --force` on start (disable with `RUN_MIGRATIONS=0`), and caches config and routes. For a full local stack with Postgres and the inventory API, use `docker compose` in `office-inventory-api`.
+
+For container setup, `php artisan service:bootstrap <email> [--token-file=path] [--seed]` makes sure a service user exists and issues it a token, writing the token to the file only if the file is missing or empty. `--seed` adds the demo accounts.
 
 ## Roles
 
