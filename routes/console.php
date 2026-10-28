@@ -12,7 +12,13 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('user:create {email} {--name=} {--role=staff} {--password=}', function (string $email) {
+Artisan::command('user:create {email} {--name=} {--role=staff} {--password=} {--if-missing : Succeed without changes if the email is taken}', function (string $email) {
+    if ($this->option('if-missing') && User::where('email', $email)->exists()) {
+        $this->info("<{$email}> already exists; leaving it");
+
+        return 0;
+    }
+
     $role = Role::tryFrom($this->option('role'));
     if (! $role) {
         $this->error('Role must be one of: '.implode(', ', array_column(Role::cases(), 'value')));
@@ -68,7 +74,7 @@ Artisan::command('user:token {email} {--name=cli} {--expires= : Minutes until ex
     return 0;
 })->purpose('Issue a Sanctum token for a user (printed once)');
 
-Artisan::command('service:bootstrap {email} {--token-file=} {--seed}', function (string $email) {
+Artisan::command('service:bootstrap {email} {--token-file=} {--token-env= : Env var holding the token to accept (replaces earlier ones)} {--seed}', function (string $email) {
     if ($this->option('seed')) {
         $this->call('db:seed', ['--force' => true]);
     }
@@ -83,6 +89,25 @@ Artisan::command('service:bootstrap {email} {--token-file=} {--seed}', function 
         $this->error("<{$email}> exists but is {$user->role->value}, not service");
 
         return 1;
+    }
+
+    // Accept a token generated outside Laravel (e.g. by the hosting platform) instead of
+    // issuing one. Sanctum looks up tokens without an "id|" prefix by hash alone.
+    if ($envName = $this->option('token-env')) {
+        $plain = (string) getenv($envName);
+        if (strlen($plain) < 32 || str_contains($plain, '|')) {
+            $this->error("{$envName} must be at least 32 characters with no '|'");
+
+            return 1;
+        }
+        $hash = hash('sha256', $plain);
+        $user->tokens()->where('name', 'service-env')->where('token', '!=', $hash)->delete();
+        if (! $user->tokens()->where('token', $hash)->exists()) {
+            $user->tokens()->create(['name' => 'service-env', 'token' => $hash, 'abilities' => ['*']]);
+            $this->info("Registered service token from {$envName}");
+        }
+
+        return 0;
     }
 
     $file = $this->option('token-file');
