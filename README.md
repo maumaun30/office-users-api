@@ -39,11 +39,19 @@ All JSON. Send `Accept: application/json`. Authenticated routes need `Authorizat
 
 Register and login are rate limited to 10/minute per email + IP.
 
+### Token lifetime
+
+- Login/register tokens expire after `SANCTUM_USER_TOKEN_EXPIRATION` minutes (default 43200 = 30 days).
+- `user:token` tokens never expire unless `--expires=<minutes>` is given. To rotate a service token: issue a new one, update `USERS_API_TOKEN` in the inventory API, then delete the old row from `personal_access_tokens`.
+- Expired tokens are pruned daily by `sanctum:prune-expired`. This needs the scheduler running (`php artisan schedule:work` locally, or a cron entry for `schedule:run` in production).
+
+The inventory API caches token lookups for `AUTH_CACHE_TTL` seconds, so a token may keep working there for that long after it expires or is revoked here.
+
 ## CLI
 
 ```bash
 php artisan user:create boss@example.com --role=admin [--name="Boss"] [--password=...]   # generates a password if omitted
-php artisan user:token boss@example.com [--name=cli]                                    # prints a new token once
+php artisan user:token boss@example.com [--name=cli] [--expires=<minutes>]               # prints a new token once
 ```
 
 ## Connecting the inventory API

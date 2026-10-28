@@ -4,6 +4,7 @@ use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -43,7 +44,7 @@ Artisan::command('user:create {email} {--name=} {--role=staff} {--password=}', f
     return 0;
 })->purpose('Create a user with a given role');
 
-Artisan::command('user:token {email} {--name=cli}', function (string $email) {
+Artisan::command('user:token {email} {--name=cli} {--expires= : Minutes until expiry; omit for a non-expiring token}', function (string $email) {
     $user = User::where('email', $email)->first();
     if (! $user) {
         $this->error("No user with email {$email}");
@@ -51,7 +52,21 @@ Artisan::command('user:token {email} {--name=cli}', function (string $email) {
         return 1;
     }
 
-    $this->line($user->createToken($this->option('name'))->plainTextToken);
+    $expires = $this->option('expires');
+    if ($expires !== null && (! ctype_digit($expires) || (int) $expires < 1)) {
+        $this->error('--expires must be a positive number of minutes');
+
+        return 1;
+    }
+
+    $token = $user->createToken(
+        $this->option('name'),
+        expiresAt: $expires === null ? null : now()->addMinutes((int) $expires),
+    );
+    $this->line($token->plainTextToken);
 
     return 0;
 })->purpose('Issue a Sanctum token for a user (printed once)');
+
+// Delete tokens that expired more than a day ago.
+Schedule::command('sanctum:prune-expired --hours=24')->daily();

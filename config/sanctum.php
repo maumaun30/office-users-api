@@ -54,6 +54,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | User Token Expiration Minutes
+    |--------------------------------------------------------------------------
+    |
+    | Lifetime of tokens issued by /api/login and /api/register, stored as the
+    | token's "expires_at". Kept separate from "expiration" above so that
+    | service tokens from `php artisan user:token` can stay long-lived.
+    |
+    */
+
+    'user_token_expiration' => (int) env('SANCTUM_USER_TOKEN_EXPIRATION', 60 * 24 * 30),
+
+    /*
+    |--------------------------------------------------------------------------
     | Token Prefix
     |--------------------------------------------------------------------------
     |
